@@ -5,9 +5,16 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"text/template"
 )
 
 const idQueryKey = "id"
+
+var rootFiles = []string{
+	"ui/html/root.page.html",
+	"ui/html/base.layout.html",
+	"ui/html/footer.partial.html",
+}
 
 // Root is a root handler
 func Root(w http.ResponseWriter, req *http.Request) {
@@ -15,9 +22,16 @@ func Root(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-	_, err := w.Write([]byte("This is a root of snippets"))
+	ts, err := template.ParseFiles(rootFiles...)
 	if err != nil {
 		log.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	err = ts.Execute(w, nil)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 }
