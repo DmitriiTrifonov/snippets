@@ -10,14 +10,14 @@ import (
 
 const idQueryKey = "id"
 
-var rootFiles = []string{
-	"ui/html/root.page.html",
-	"ui/html/base.layout.html",
-	"ui/html/footer.partial.html",
-}
-
 // Root is a root handler
 func Root(w http.ResponseWriter, req *http.Request) {
+	rootFiles := []string{
+		"ui/html/root.page.html",
+		"ui/html/base.layout.html",
+		"ui/html/footer.partial.html",
+	}
+
 	if req.URL.Path != "/" {
 		http.NotFound(w, req)
 		return
