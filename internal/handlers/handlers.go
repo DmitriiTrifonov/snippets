@@ -10,8 +10,11 @@ import (
 
 const idQueryKey = "id"
 
-// Root is a root handler
-func Root(w http.ResponseWriter, req *http.Request) {
+// Root is a struct for root handler
+type Root struct{}
+
+// ServeHTTP is a root handler
+func (r *Root) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	rootFiles := []string{
 		"ui/html/root.page.html",
 		"ui/html/base.layout.html",
@@ -36,8 +39,11 @@ func Root(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// GetSnippet is a snippet getter by id
-func GetSnippet(w http.ResponseWriter, req *http.Request) {
+// SnippetGetter is a struct for snippet getter
+type SnippetGetter struct{}
+
+// ServeHTTP is a snippet getter by id
+func (sg *SnippetGetter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	id, err := strconv.ParseInt(req.URL.Query().Get(idQueryKey), 10, 64)
 	if err != nil || id < 1 {
 		http.NotFound(w, req)
@@ -52,8 +58,11 @@ func GetSnippet(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// SnippetAdder is a struct for adding snippets
+type SnippetAdder struct{}
+
 // AddSnippet adds a new snippet
-func AddSnippet(w http.ResponseWriter, req *http.Request) {
+func (ss *SnippetAdder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		w.Header().Add("Allow", http.MethodPost)
 		http.Error(w, "Method "+req.Method+" is not allowed", http.StatusMethodNotAllowed)

@@ -1,69 +1,65 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
+	"snippets/internal/application"
+	"snippets/internal/fs"
 	"snippets/internal/handlers"
 	"syscall"
+
+	"go.uber.org/zap"
 )
 
 const (
 	port = ":8080"
 )
 
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", handlers.Root)
-	mux.HandleFunc("/snippet", handlers.GetSnippet)
-	mux.HandleFunc("/snippet/add", handlers.AddSnippet)
+// Config collects an initial config data
+type Config struct {
+	Address       string
+	StaticDirPath string
+}
 
-	fileServer := http.FileServer(neuteredFileSystem{http.Dir("ui/static/")})
+func main() {
+	cfg := Config{}
+
+	flag.StringVar(&cfg.Address, "addr", port, "HTTP-server address")
+	flag.StringVar(&cfg.StaticDirPath, "static-dir-path", "ui/static/", "Path to static dir")
+	flag.Parse()
+
+	app := application.NewContainer()
+
+	logger, err := app.GetLogger()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", &handlers.Root{})
+	mux.Handle("/snippet", &handlers.SnippetGetter{})
+	mux.Handle("/snippet/add", &handlers.SnippetAdder{})
+
+	fileServer := http.FileServer(fs.NewNeuteredFS(http.Dir(cfg.StaticDirPath), logger))
 
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	log.Printf("Starting server on %s", port)
+	startingMessage := "starting server on " + cfg.Address
+	logger.Info(startingMessage)
 	go func() {
-		if err := http.ListenAndServe(port, mux); err != nil {
-			log.Println(err)
+		if errServe := http.ListenAndServe(cfg.Address, mux); errServe != nil {
+			logger.Error("cannot init http-server", zap.Error(err))
 		}
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	sig := <-stop
-	log.Printf("Got a signal: %s", sig)
-	log.Printf("Stopped server on %s", port)
-}
-
-type neuteredFileSystem struct {
-	fs http.FileSystem
-}
-
-func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
-	f, err := nfs.fs.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := f.Stat()
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	if s.IsDir() {
-		index := filepath.Join(path, "index.html")
-		if _, err = nfs.fs.Open(index); err != nil {
-			closeErr := f.Close()
-			if closeErr != nil {
-				return nil, closeErr
-			}
-
-			return nil, err
-		}
-	}
-
-	return f, nil
+	signalMessage := "got a signal: " + sig.String()
+	logger.Info(signalMessage)
+	stopMessage := "stopped server on " + cfg.Address
+	logger.Info(stopMessage)
 }

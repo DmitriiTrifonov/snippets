@@ -67,7 +67,7 @@ textarea, input:not([type="submit"]) {
 }
 
 header {
-    background-image: linear-gradient(#f9efef, #f9efef);
+    background-image: linear-gradient(#95f6bd, #95f6bd);
     background-size: 100% 6px;
     background-repeat: no-repeat;
     border-bottom: 1px solid #E4E5E7;
